@@ -1,0 +1,100 @@
+# =============================================================================
+# Antigravity Obsidian Exporter — .gitignore
+# =============================================================================
+
+# ── Python bytecode ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Distribution / packaging ──────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+.installed.cfg
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+nosetests.xml
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# Antigravity personal data — NEVER commit these
+# =============================================================================
+
+# Primary conversation storage
+conversations/
+brain/
+annotations/
+knowledge/
+builtin/
+grimoire/
+bin/
+
+# Google / Antigravity app data
+.gemini/
+.claude/
+.obsidian/
+.agy_debug/
+
+# Raw data file formats
+*.db
+*.pb
+*.pbtxt
+*.jsonl
+*.sqlite
+*.sqlite3
+
+# Exported Obsidian notes (generated output — not source code)
+"AI Vault"/
+AI Vault/
+exports/
+
+# Exporter state / cache
+.agy_export_state.json
+
+# Antigravity-generated workspace files
+installation_id
+Untitled.canvas
+*.canvas
+.grimoire/
+
+# Vault-level generated index files (produced by the exporter, not source code)
+Timeline.md
+Conversations.md
+Tags.md
+Topics.md
+
+# Log files
+*.log
+logs/
+
+# =============================================================================
+# OS junk
+# =============================================================================
+.DS_Store
+Thumbs.db
+desktop.ini
