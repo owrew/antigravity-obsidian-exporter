@@ -1,0 +1,40 @@
+"""
+config.py
+=========
+Central configuration for the Antigravity to Obsidian Exporter.
+"""
+from __future__ import annotations
+import os
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+@dataclass
+class ExporterConfig:
+    source_dir: str
+    vault_dir: str
+    watch: bool = False
+    watch_interval: float = 5.0
+    force: bool = False
+    debug: bool = False
+    conv_filter: Optional[List[str]] = None
+    no_tool_results: bool = False
+    max_tool_results_per_turn: int = 5
+    verbose: bool = False
+    
+    # Internal paths derived from source_dir and vault_dir
+    brain_dir: str = field(init=False)
+    conversations_dir: str = field(init=False)
+    annotations_dir: str = field(init=False)
+    summaries_pb_path: str = field(init=False)
+    output_chats_dir: str = field(init=False)
+    
+    def __post_init__(self):
+        self.source_dir = os.path.abspath(self.source_dir)
+        self.vault_dir = os.path.abspath(self.vault_dir)
+        
+        self.brain_dir = os.path.join(self.source_dir, "brain")
+        self.conversations_dir = os.path.join(self.source_dir, "conversations")
+        self.annotations_dir = os.path.join(self.source_dir, "annotations")
+        self.summaries_pb_path = os.path.join(self.source_dir, "agyhub_summaries_proto.pb")
+        
+        self.output_chats_dir = os.path.join(self.vault_dir, "AI Vault", "Chats")

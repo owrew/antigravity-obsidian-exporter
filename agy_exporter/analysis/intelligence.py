@@ -1,0 +1,241 @@
+"""
+intelligence.py
+===============
+Analyzes conversation transcripts to generate a summary, list topics,
+technologies, files mentioned, commands executed, and code languages used.
+"""
+from __future__ import annotations
+import os
+import re
+from typing import List, Set, Tuple, Any
+from ..models import Step, ConversationTranscript, ConversationIntelligence
+from ..sources.transcript import TOOL_RESULT_TYPES
+
+# Pattern dictionaries for tech & topics detection
+_TECH_STACK = {
+    "React": r"\bReact\b",
+    "TypeScript": r"\bTypeScript\b|\bts\b",
+    "JavaScript": r"\bJavaScript\b|\bjs\b",
+    "Next.js": r"\bNext\.js\b|\bNextjs\b",
+    "Vite": r"\bVite\b",
+    "Node.js": r"\bNode\.js\b|\bNodejs\b|\bNode\b",
+    "Rust": r"\bRust\b",
+    "Go": r"\bGo\b(?!ogle)",
+    "Java": r"\bJava\b",
+    "Python": r"\bPython\b",
+    "Ruby": r"\bRuby\b",
+    "PHP": r"\bPHP\b",
+    "HTML": r"\bHTML\b",
+    "CSS": r"\bCSS\b",
+    "SQL": r"\bSQL\b",
+    "MySQL": r"\bMySQL\b",
+    "PostgreSQL": r"\bPostgreSQL\b|\bPostgres\b",
+    "SQLite": r"\bSQLite\b",
+    "MongoDB": r"\bMongoDB\b",
+    "Redis": r"\bRedis\b",
+    "Docker": r"\bDocker\b",
+    "Kubernetes": r"\bKubernetes\b|\bk8s\b",
+    "Railway": r"\bRailway\b",
+    "Vercel": r"\bVercel\b",
+    "AWS": r"\bAWS\b|\bAmazon Web Services\b",
+    "Google Cloud": r"\bGCP\b|\bGoogle Cloud\b",
+    "Firebase": r"\bFirebase\b",
+    "Supabase": r"\bSupabase\b",
+    "Drizzle ORM": r"\bDrizzle\b",
+    "Prisma": r"\bPrisma\b",
+    "tRPC": r"\btRPC\b",
+    "GraphQL": r"\bGraphQL\b",
+    "REST API": r"\bREST\b",
+    "Tailwind CSS": r"\bTailwind\b",
+    "Puppeteer": r"\bPuppeteer\b",
+    "Android": r"\bAndroid\b",
+    "iOS": r"\biOS\b",
+    "Expo": r"\bExpo\b",
+    "React Native": r"\bReact Native\b",
+    "Zod": r"\bZod\b",
+    "Webpack": r"\bWebpack\b",
+    "EAS CLI": r"\bEAS CLI\b|\bEAS\b",
+    "Express.js": r"\bExpress\b",
+    "FastAPI": r"\bFastAPI\b",
+    "Django": r"\bDjango\b",
+}
+
+_TOPIC_PATTERNS = {
+    "Database Migration": r"\bmigration\b|\bseed\b|\bupgrades?\b|\bforeign key\b",
+    "API Development": r"\bapi\b|\brouter\b|\bendpoint\b|\btRPC\b|\bgraphql\b",
+    "Authentication": r"\bauth\b|\blogin\b|\bsignup\b|\bjwt\b|\boauth\b|\bsession\b",
+    "Role-Based Access Control": r"\brbac\b|\broles?\b|\bpermissions?\b",
+    "Deployment": r"\bdeploy\b|\brailway\b|\bdockerfile\b|\bcontainer\b",
+    "Dependency Management": r"\binstall\b|\bpnpm\b|\bnpm\b|\byarn\b|\bpackage\.json\b",
+    "Error Fixing": r"\berror\b|\bfix\b|\bbug\b|\bcrash\b|\bissue\b|\bdebug\b",
+    "Code Review": r"\binspect\b|\bread\b|\banalyze\b|\breview\b",
+    "Mobile App Sync": r"\bmobile\b|\bandroid\b|\bios\b|\bexpo\b|\bsync\b",
+    "Search Optimization": r"\bsearch\b|\bseo\b|\bconsole\b|\bverification\b",
+}
+
+_FILE_PATH_RE = re.compile(
+    r'(?:[a-zA-Z]:\\|[a-zA-Z0-9_\-\.]+/)+'
+    r'[a-zA-Z0-9_\-\.]+\.[a-zA-Z0-9]{2,4}\b'
+)
+
+def _extract_files(text: str) -> Set[str]:
+    files = set()
+    for match in _FILE_PATH_RE.finditer(text):
+        path = match.group(0)
+        # Filter out obvious false positives
+        if any(x in path for x in ("http:", "https:", "@", "node_modules", "package-lock")):
+            continue
+        # Standardize separator
+        path = path.replace("\\", "/")
+        # Avoid directories or simple extensions
+        if "/" in path and not path.endswith((".ts", ".tsx", ".js", ".jsx", ".py", ".rs", ".go", ".sql", ".css", ".html", ".json", ".md", ".yml", ".yaml", ".lock", ".sh", ".bat", ".pbtxt", ".pb")):
+            continue
+        files.add(os.path.basename(path))
+    return files
+
+def _extract_commands(steps: List[Step]) -> List[str]:
+    commands = []
+    for step in steps:
+        # Check command run tool
+        for tc in step.tool_calls:
+            if tc.name == "run_command":
+                cmd = tc.args.get("CommandLine") or tc.args.get("command")
+                if cmd:
+                    commands.append(str(cmd).strip())
+        # Parse command lines from contents (heuristics)
+        if step.step_type == "RUN_COMMAND" and step.content:
+            pass # tool result
+    return commands
+
+def _extract_languages(steps: List[Step]) -> Set[str]:
+    langs = set()
+    lang_map = {
+        "ts": "TypeScript", "tsx": "TypeScript",
+        "js": "JavaScript", "jsx": "JavaScript",
+        "py": "Python", "rs": "Rust",
+        "go": "Go", "sql": "SQL",
+        "css": "CSS", "html": "HTML",
+        "json": "JSON", "md": "Markdown",
+        "yml": "YAML", "yaml": "YAML",
+        "sh": "Shell", "bat": "Batch",
+        "pbtxt": "Protobuf", "pb": "Protobuf"
+    }
+    
+    # 1. Check codeblocks in markdown
+    for step in steps:
+        if step.content:
+            for match in re.finditer(r"```([a-zA-Z0-9#+-]+)", step.content):
+                lang = match.group(1).lower()
+                if lang in ("typescript", "ts"): langs.add("TypeScript")
+                elif lang in ("javascript", "js"): langs.add("JavaScript")
+                elif lang in ("python", "py"): langs.add("Python")
+                elif lang == "rust": langs.add("Rust")
+                elif lang == "go": langs.add("Go")
+                elif lang == "sql": langs.add("SQL")
+                elif lang == "css": langs.add("CSS")
+                elif lang == "html": langs.add("HTML")
+                elif lang == "json": langs.add("JSON")
+                elif lang == "markdown": langs.add("Markdown")
+                elif lang in ("yaml", "yml"): langs.add("YAML")
+                elif lang in ("shell", "sh", "bash"): langs.add("Shell")
+                elif lang in ("batch", "bat"): langs.add("Batch")
+                elif lang in ("protobuf", "proto"): langs.add("Protobuf")
+
+    # 2. Check file path extensions
+    for step in steps:
+        for tc in step.tool_calls:
+            path = tc.args.get("AbsolutePath") or tc.args.get("TargetFile") or tc.args.get("path")
+            if path:
+                ext = str(path).split(".")[-1].lower()
+                if ext in lang_map:
+                    langs.add(lang_map[ext])
+    return langs
+
+def _generate_summary(conv_id: str, steps: List[Step]) -> str:
+    """Generates a high-quality human-readable conversation summary."""
+    user_requests = []
+    actions = []
+    errors = []
+
+    for step in steps:
+        if step.step_type == "USER_INPUT" and step.content:
+            # Strip tags and collect first lines
+            clean = step.content
+            # Remove metadata
+            m = re.search(r'<USER_REQUEST>(.*?)</USER_REQUEST>', clean, re.DOTALL)
+            if m:
+                clean = m.group(1).strip()
+            first_line = clean.split('\n')[0].strip()
+            if len(first_line) > 10:
+                user_requests.append(first_line)
+        
+        # Tools used
+        for tc in step.tool_calls:
+            summary = tc.tool_summary or tc.tool_action
+            if summary:
+                actions.append(summary.strip())
+            else:
+                actions.append(f"Invoked tool {tc.name}")
+        
+        if step.step_type == "ERROR" and step.content:
+            errors.append(step.content.split('\n')[0].strip())
+
+    # Formulate summary
+    parts = []
+    if user_requests:
+        req = user_requests[0]
+        if not req.endswith(('.', '?', '!')):
+            req += '.'
+        parts.append(f"The user requested to: {req}")
+    
+    unique_actions = list(dict.fromkeys(actions))
+    if unique_actions:
+        action_desc = ", and ".join(unique_actions[:3])
+        if len(unique_actions) > 3:
+            action_desc += f", among other actions"
+        parts.append(f"During execution, the assistant worked on {action_desc.lower()}.")
+    
+    if errors:
+        parts.append(f"Encountered issue(s): {errors[0]}.")
+
+    if not parts:
+        return "No significant actions or messages recorded in this conversation."
+
+    return " ".join(parts)
+
+def generate_intelligence(transcript: ConversationTranscript) -> ConversationIntelligence:
+    steps = transcript.steps
+    all_text = " ".join([s.content for s in steps if s.content])
+    
+    # 1. Tech stack
+    tech = []
+    for name, pat in _TECH_STACK.items():
+        if re.search(pat, all_text, re.IGNORECASE):
+            tech.append(name)
+            
+    # 2. Topics
+    topics = []
+    for name, pat in _TOPIC_PATTERNS.items():
+        if re.search(pat, all_text, re.IGNORECASE):
+            topics.append(name)
+            
+    # 3. Files Mentioned
+    files = _extract_files(all_text)
+    
+    # 4. Commands
+    commands = _extract_commands(steps)
+    
+    # 5. Languages
+    languages = list(_extract_languages(steps))
+    
+    # 6. Summary
+    summary = _generate_summary(transcript.conv_id, steps)
+    
+    return ConversationIntelligence(
+        summary=summary,
+        topics=topics,
+        technologies=tech,
+        files_mentioned=sorted(list(files)),
+        commands_executed=commands,
+        code_languages=languages
+    )
