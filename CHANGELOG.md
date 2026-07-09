@@ -6,36 +6,65 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and 
 
 ---
 
-## [Unreleased]
+## [2.1.0] — 2026-07-10
 
 ### Added
-- **Full content preservation** — every user message, assistant response, thinking block, tool call, tool output, terminal output, and file content is now included in full by default (no truncation unless explicitly configured)
-- `max_tool_output_length` config option and `--max-tool-output-length` CLI flag — set a character limit per tool output block (default: unlimited)
-- `max_tool_results_per_turn` now defaults to `None` (unlimited) instead of 5
-- `--max-tool-results-per-turn` CLI flag to cap blocks per turn if desired
-- `_safe_code_block()` helper — uses adaptive fence length to prevent backtick collisions inside tool outputs
-- AI model recognition patterns: **Codex, Qwen, Z AI, Ollama, DeepSeek, Llama, Mistral, Gemma, Local AI** — now tagged and wiki-linked in exported notes
-- Eager annotation loading in `run_export` (before rendering) for deterministic `last_viewed` timestamps
-- Sorted code language list to prevent set-ordering non-determinism across process runs
+
+**Archive-quality note rendering** (`render/conversation.py` rewrite)
+- Every note now contains complete sections: Conversation Statistics, Technologies, Topics, Files Mentioned, Commands Executed, Wiki Links, Related Conversations, Timeline, and Conversation Intelligence footer
+- Conversation Statistics table with per-tool call breakdown
+- Tool result headers now show descriptive context (`VIEW_FILE → package.json`) instead of generic type names
+- Full ISO timestamp display on every turn header (`2026-06-25 20:06 UTC`)
+- `duration` field calculated and shown in metadata table and YAML frontmatter
+- Extended YAML frontmatter: `duration`, `user_turns`, `assistant_turns`, `tool_calls_total`, `thinking_blocks`, `technologies`, `topics`, `code_languages`
+- `_collect_stats()` helper for per-conversation statistics
+- `_tool_result_title()` helper for descriptive tool result headers
+- `_duration_str()` helper for human-readable conversation duration
+- Timeline section (chronological event log, up to 50 entries)
+- Files Mentioned and Commands Executed sections show ALL items (no truncation)
+
+**Improved summary generation** (`analysis/intelligence.py`)
+- Lists ALL user requests (numbered) instead of only the first
+- Shows total tool call count + top-8 per-tool breakdown
+- Tracks files written/edited separately from files read
+- Tracks commands executed with preview
+- Reports error messages encountered during the session
+
+**System metadata stripping** (`sources/transcript.py`)
+- `ADDITIONAL_METADATA`, `USER_SETTINGS_CHANGE`, `SYSTEM_REMINDERS`, `SYSTEM_MESSAGE` blocks now removed entirely (tag + content) — these are system-injected and have no place in exported notes
+- `USER_REQUEST` wrapper tags stripped but inner content preserved
+- Inner XML authored by the user (e.g. `<config>...</config>`) left untouched
+
+**4-level configuration system** (`__main__.py` rewrite)
+- Priority: CLI flags → `AGY_SOURCE`/`AGY_VAULT` env vars → config file → auto-detection
+- `--save-config` — persist `--source` and `--vault` to `%APPDATA%\agy_exporter\config.json` permanently
+- `--show-config` — print all resolved paths with `[OK]`/`[!!]` status and exit
+- Auto-detection expanded from 2 to 12+ candidate paths (Windows, macOS, Linux)
+- Startup always prints active Source and Vault paths
+
+**Multi-AI source readers** (new files)
+- `sources/chatgpt.py` — parses ChatGPT `conversations.json` exports (tree → linear steps)
+- `sources/claude_ai.py` — parses Claude.ai exports, handles text + tool_use + tool_result blocks
+- `sources/ollama.py` — reads Open WebUI SQLite (`webui.db`) and LM Studio JSON files
 
 ### Changed
-- `clean_user_content()` now **preserves all content inside wrapper tags** (`USER_REQUEST`, `ADDITIONAL_METADATA`, etc.) instead of stripping them — no information is discarded
-- Error/unknown step content is no longer truncated at 500 chars — full content is preserved
-- `format_conversation()` now accepts a `config=` parameter for one-call configuration
-- `_format_tool_call()` respects `max_tool_output_length` for argument display
-- `engine.py` passes full `config` object to `format_conversation` instead of individual flags
+- `clean_user_content()` behaviour reversed: now **strips** `ADDITIONAL_METADATA` content (was keeping it)
+- README Quick Start expanded to 5 steps with configuration priority table, auto-detection path list, `--save-config` workflow, `--show-config` sample output
+- README CLI Options table updated with `--save-config`, `--show-config`, `--max-tool-results-per-turn`, `--max-tool-output-length`
+- README typing SVG enlarged: height 80 → 120px, width 600 → 700px, font-size 22 → 24pt
 
 ### Fixed
-- **Idempotency fully resolved** — two consecutive runs now correctly produce `Written=0 Skipped=12` after a force rebuild (was intermittently re-writing 4–6 files on every run)
-- Root cause: `last_viewed_at` was loaded inside `export_one` (only for changed notes) causing the stored hash to not match on the next run for those notes
-- Set hash randomization (`PYTHONHASHSEED`) causing non-deterministic `code_languages` list ordering — fixed by sorting
+- **Idempotency** — annotations now loaded eagerly before any rendering so `last_viewed` is always populated, making consecutive runs produce `Written=0 Skipped=12`
+- **Non-determinism** — `code_languages` sorted to prevent `PYTHONHASHSEED`-driven hash changes
+- Windows console `UnicodeEncodeError` in `--show-config` output (removed emoji, use ASCII `[OK]`/`[!!]`)
+
+### Tests
+- 15 tests, 0 failures
+- 4 new `test_transcript.py` cases covering metadata stripping, settings change stripping, inner XML preservation
+- 4 new `test_markdown.py` cases covering metadata stripping, thinking blocks, required sections, new frontmatter
 
 ---
 
-
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
 
 ## [2.0.0] — 2026-07-09
 
