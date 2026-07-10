@@ -8,21 +8,23 @@ block, tool call, and tool output is preserved in full.
 from __future__ import annotations
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from ..models import ConversationTranscript, ConversationMeta, Step, Turn, ToolCall
 from ..config.exporter import ExporterConfig
 from ..utils.content import (
     clean_user_content, get_date_range,
     TOOL_RESULT_TYPES, TYPE_USER_INPUT, TYPE_PLANNER_RESPONSE,
 )
-from ..analysis.wikilinks import extract_topics, title_to_filename
+from ..analysis.wikilinks import extract_topics
 from .mermaid import generate_mermaid_diagram
 
 
 # ── Time helpers ─────────────────────────────────────────────────────────────
 
+
 def _iso_to_date(iso: str) -> str:
     return iso[:10] if iso else ""
+
 
 def _unix_to_iso(ts: Optional[int]) -> str:
     if not ts:
@@ -32,8 +34,10 @@ def _unix_to_iso(ts: Optional[int]) -> str:
     except Exception:
         return ""
 
+
 def _unix_to_date(ts: Optional[int]) -> str:
     return _unix_to_iso(ts)[:10] if ts else ""
+
 
 def _iso_to_display(iso: str) -> str:
     """Convert ISO timestamp to readable display: '2026-06-25 20:06 UTC'"""
@@ -43,6 +47,7 @@ def _iso_to_display(iso: str) -> str:
         return iso[:16].replace('T', ' ') + " UTC"
     except Exception:
         return iso
+
 
 def _duration_str(start_iso: str, end_iso: str) -> str:
     """Human-readable duration between two ISO timestamps."""
@@ -66,6 +71,7 @@ def _duration_str(start_iso: str, end_iso: str) -> str:
 
 # ── Markdown helpers ──────────────────────────────────────────────────────────
 
+
 def _safe_code_block(content: str, language: str = "") -> str:
     """Use an adaptive fence length so inner backtick runs cannot break the block."""
     max_backticks = 0
@@ -73,6 +79,7 @@ def _safe_code_block(content: str, language: str = "") -> str:
         max_backticks = max(max_backticks, len(match.group(0)))
     fence = '`' * max(max_backticks + 1, 3)
     return f"{fence}{language}\n{content}\n{fence}"
+
 
 def _clean_planner_content(text: str) -> str:
     if not text:
@@ -84,6 +91,7 @@ def _clean_planner_content(text: str) -> str:
 # ── Tool-call argument extraction helpers ─────────────────────────────────────
 
 _SKIP_ARG_KEYS = {'toolSummary', 'toolAction'}
+
 
 def _tool_result_title(step: Step) -> str:
     """Build a descriptive title for a tool result block from the step content."""
@@ -137,6 +145,7 @@ def _format_tool_call(tool_call: ToolCall, max_len: Optional[int] = None) -> str
 
 # ── Step formatter ────────────────────────────────────────────────────────────
 
+
 def _format_step(
     step: Step,
     config_no_tool_results: bool,
@@ -155,10 +164,10 @@ def _format_step(
         # ── Thinking block (collapsible) ──────────────────────────────────
         if step.thinking:
             parts.append(
-                f"<details>\n"
-                f"<summary>💭 Thinking Process</summary>\n\n"
+                "<details>\n"
+                "<summary>💭 Thinking Process</summary>\n\n"
                 f"{step.thinking.strip()}\n"
-                f"</details>"
+                "</details>"
             )
 
         # ── Main assistant content ────────────────────────────────────────
@@ -194,32 +203,33 @@ def _format_step(
                     code_block = _safe_code_block(display)
                     ts_label = f" *(step {step.index})*" if step.index else ""
                     parts.append(
-                        f"<details>\n"
+                        "<details>\n"
                         f"<summary>📄 {title}{ts_label}</summary>\n\n"
                         f"{code_block}\n"
-                        f"</details>"
+                        "</details>"
                     )
             elif not is_unlimited and result_counter[0] == max_results:
                 result_counter[0] += 1
                 parts.append(
                     f"> ⚠️ *{max_results} tool results shown — remaining results omitted.*  \n"
-                    f"> *Use `--max-tool-results-per-turn` to change this limit.*"
+                    "> *Use `--max-tool-results-per-turn` to change this limit.*"
                 )
 
     elif step.step_type in ('UNKNOWN_', 'ERROR') or step.step_type.startswith('UNKNOWN_'):
         content = step.content or ""
         if content:
             parts.append(
-                f"<details>\n"
+                "<details>\n"
                 f"<summary>⚠️ {step.step_type} (step {step.index})</summary>\n\n"
                 f"{_safe_code_block(content)}\n"
-                f"</details>"
+                "</details>"
             )
 
     return '\n\n'.join(p for p in parts if p)
 
 
 # ── Turn grouper ──────────────────────────────────────────────────────────────
+
 
 def _group_turns(steps: List[Step]) -> List[Turn]:
     turns: List[Turn] = []
@@ -264,6 +274,7 @@ def _group_turns(steps: List[Step]) -> List[Turn]:
 
 # ── Statistics collector ──────────────────────────────────────────────────────
 
+
 def _collect_stats(steps: List[Step]) -> dict:
     user_turns = sum(1 for s in steps if s.step_type == TYPE_USER_INPUT)
     asst_turns = sum(1 for s in steps if s.step_type == TYPE_PLANNER_RESPONSE)
@@ -288,6 +299,7 @@ def _collect_stats(steps: List[Step]) -> dict:
 
 
 # ── Main formatter ────────────────────────────────────────────────────────────
+
 
 def format_conversation(
     transcript: ConversationTranscript,
@@ -340,7 +352,7 @@ def format_conversation(
     aliases_yaml = '\n'.join(f'  - "{a}"' for a in aliases)
     tech_yaml   = '\n'.join(f'  - {t}' for t in intel.technologies) if intel.technologies else '  []'
     topics_yaml = '\n'.join(f'  - {t}' for t in intel.topics)       if intel.topics       else '  []'
-    langs_yaml  = '\n'.join(f'  - {l}' for l in intel.code_languages) if intel.code_languages else '  []'
+    langs_yaml  = '\n'.join(f'  - {lang}' for lang in intel.code_languages) if intel.code_languages else '  []'
 
     frontmatter = f"""---
 id: "{conv_id}"
@@ -355,7 +367,7 @@ assistant_turns: {stats['asst_turns']}
 tool_calls_total: {stats['tool_calls']}
 thinking_blocks: {stats['thinking_blocks']}
 conversation_id: "{conv_id}"
-source: "antigravity"
+source: "{transcript.provider}"
 tags:
 {tag_yaml}
 aliases:
@@ -374,22 +386,22 @@ code_languages:
 
     # ── Metadata table ────────────────────────────────────────────────────────
     body.append(
-        f"| Field | Value |\n"
-        f"| --- | --- |\n"
+        "| Field | Value |\n"
+        "| --- | --- |\n"
         f"| **Conversation ID** | `{conv_id}` |\n"
         f"| **Created** | {created_date or 'Unknown'} |\n"
         f"| **Updated** | {updated_date or 'Unknown'} |\n"
         f"| **Last Viewed** | {last_viewed} |\n"
         f"| **Duration** | {duration} |\n"
         f"| **Total Steps** | {step_count} |\n"
-        f"| **Source** | Antigravity (Google) |\n"
+        "| **Source** | Antigravity (Google) |\n"
     )
 
     # ── Conversation Statistics ───────────────────────────────────────────────
     body.append("## 📊 Conversation Statistics\n")
     body.append(
-        f"| Metric | Count |\n"
-        f"| --- | --- |\n"
+        "| Metric | Count |\n"
+        "| --- | --- |\n"
         f"| 👤 User Turns | {stats['user_turns']} |\n"
         f"| 🤖 Assistant Turns | {stats['asst_turns']} |\n"
         f"| 💭 Thinking Blocks | {stats['thinking_blocks']} |\n"
@@ -405,9 +417,9 @@ code_languages:
             f"| `{name}` | {count} |" for name, count in top
         )
         body.append(
-            f"### Tool Call Breakdown\n\n"
-            f"| Tool | Calls |\n"
-            f"| --- | --- |\n"
+            "### Tool Call Breakdown\n\n"
+            "| Tool | Calls |\n"
+            "| --- | --- |\n"
             f"{breakdown_rows}\n"
         )
 
@@ -456,9 +468,9 @@ code_languages:
             else:
                 related_rows.append(f"| [[{r_id[:8]}]] | `{r_id}` |")
         body.append(
-            f"## 🔄 Related Conversations\n\n"
-            f"| Note | Conversation ID |\n"
-            f"| --- | --- |\n"
+            "## 🔄 Related Conversations\n\n"
+            "| Note | Conversation ID |\n"
+            "| --- | --- |\n"
             + '\n'.join(related_rows) + "\n"
         )
 
@@ -480,7 +492,7 @@ code_languages:
 
     if timeline_entries:
         body.append(
-            f"## ⏱️ Timeline\n\n"
+            "## ⏱️ Timeline\n\n"
             + '\n'.join(timeline_entries[:50])
             + ("\n\n*…timeline truncated after 50 entries*" if len(timeline_entries) > 50 else "")
             + "\n"

@@ -3,4 +3,4 @@ ollama
 ======
 Ollama / LM Studio conversation provider for ConvoVault.
 """
-from .provider import OllamaProvider
+from .provider import OllamaProvider  # noqa: F401

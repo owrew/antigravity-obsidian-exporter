@@ -13,8 +13,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Dict, List, Optional
-from ...models import Step, ToolCall, ConversationTranscript
+from typing import List
+from ...models import Step, ConversationTranscript
 
 log = logging.getLogger(__name__)
 

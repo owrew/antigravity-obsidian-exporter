@@ -12,6 +12,7 @@ from ...models import ConversationMeta
 
 log = logging.getLogger(__name__)
 
+
 def _read_varint(buf: bytes, pos: int) -> Tuple[int, int]:
     result, shift = 0, 0
     while pos < len(buf):
@@ -21,6 +22,7 @@ def _read_varint(buf: bytes, pos: int) -> Tuple[int, int]:
         if not (b & 0x80):
             break
     return result, pos
+
 
 def _decode_fields(data: bytes) -> List[Tuple[int, int, object]]:
     buf = bytes(data)
@@ -63,11 +65,13 @@ def _decode_fields(data: bytes) -> List[Tuple[int, int, object]]:
             errors += 1
     return out
 
+
 def _decode_timestamp(raw: bytes) -> Optional[int]:
     for fn, wt, v in _decode_fields(raw):
         if fn == 1 and wt == 0:
             return v
     return None
+
 
 def _as_str(v: object) -> Optional[str]:
     if isinstance(v, bytes):
@@ -76,6 +80,7 @@ def _as_str(v: object) -> Optional[str]:
         except Exception:
             return None
     return str(v) if v is not None else None
+
 
 def parse_summaries(pb_path: str) -> Dict[str, ConversationMeta]:
     if not os.path.isfile(pb_path):

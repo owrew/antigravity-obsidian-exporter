@@ -97,6 +97,7 @@ _TECH_PATTERNS: List[Tuple[str, str, str]] = [
 _COMPILED = [(re.compile(pat, re.IGNORECASE), name, tag) for pat, name, tag in _TECH_PATTERNS]
 _BASE_TAGS = ['convovault', 'ai-chat']
 
+
 def extract_topics(text: str) -> Tuple[List[str], List[str]]:
     seen_names: Set[str] = set()
     seen_tags: Set[str] = set()
@@ -121,11 +122,13 @@ def extract_topics(text: str) -> Tuple[List[str], List[str]]:
 
     return wiki_links, final_tags
 
+
 def slugify(text: str) -> str:
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[\s_]+', '-', text.strip())
     text = re.sub(r'-+', '-', text)
     return text[:80].strip('-')
+
 
 def title_to_filename(title: str) -> str:
     safe = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '', title)

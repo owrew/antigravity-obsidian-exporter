@@ -10,10 +10,11 @@ from ..base import BaseProvider
 from ...models import Conversation, ConversationMeta
 from ...config.exporter import ExporterConfig
 
-from .transcript import read_transcript, get_transcript_mtime
+from .transcript import read_transcript
 from .pb_summaries import parse_summaries
 from .annotations import parse_annotation
 from .sqlite_db import read_from_sqlite
+
 
 class AntigravityProvider(BaseProvider):
     @property
@@ -26,13 +27,13 @@ class AntigravityProvider(BaseProvider):
             for fname in os.listdir(config.conversations_dir):
                 if fname.endswith('.db'):
                     ids.add(fname[:-3])
-                    
+
         if os.path.isdir(config.brain_dir):
             for name in os.listdir(config.brain_dir):
                 logs_dir = os.path.join(config.brain_dir, name, '.system_generated', 'logs')
                 if os.path.isdir(logs_dir):
                     ids.add(name)
-                    
+
         return sorted(list(ids))
 
     def read_conversation(self, conv_id: str, config: ExporterConfig) -> Optional[Conversation]:
@@ -41,7 +42,7 @@ class AntigravityProvider(BaseProvider):
         if ts:
             ts.provider = self.name
             return ts
-            
+
         # 2. Fallback to SQLite
         db_path = os.path.join(config.conversations_dir, conv_id + ".db")
         if os.path.isfile(db_path):
@@ -59,4 +60,3 @@ class AntigravityProvider(BaseProvider):
             if last_view:
                 meta.last_viewed_at = last_view
         return meta_index
-

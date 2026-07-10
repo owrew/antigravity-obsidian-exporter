@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 STATE_FILE = ".convovault_state.json"
 LEGACY_STATE_FILE = ".agy_export_state.json"
 
+
 class ExportState:
     def __init__(self, vault_dir: str):
         self.vault_dir = vault_dir
@@ -58,7 +59,7 @@ class ExportState:
         entry = self.state.get(conv_id, {})
         if not entry:
             return True
-            
+
         # Check if the output file still exists where we wrote it
         note_path = entry.get('note_path')
         if not note_path or not os.path.isfile(note_path):
@@ -68,7 +69,7 @@ class ExportState:
         if entry.get('content_hash') != content_hash:
             log.debug("Hash mismatch for %s: local=%s, incoming=%s", conv_id[:8], entry.get('content_hash'), content_hash)
             return True
-            
+
         if mtime is not None and entry.get('source_mtime') != mtime:
             log.debug("Mtime mismatch for %s: local=%s, incoming=%s", conv_id[:8], entry.get('source_mtime'), mtime)
             return True
@@ -88,6 +89,7 @@ class ExportState:
 
     def all_exported_paths(self) -> Set[str]:
         return {v['note_path'] for v in self.state.values() if 'note_path' in v}
+
 
 def get_content_hash(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]

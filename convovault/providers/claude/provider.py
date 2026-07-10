@@ -11,6 +11,7 @@ from ...models import Conversation, ConversationMeta
 from ...config.exporter import ExporterConfig
 from .claude_ai import read_claude_export
 
+
 class ClaudeProvider(BaseProvider):
     _cached_filepath: Optional[str] = None
     _cached_convs: Dict[str, Conversation] = {}
@@ -34,7 +35,7 @@ class ClaudeProvider(BaseProvider):
             return
         if self._cached_filepath == filepath and self._cached_convs:
             return
-        
+
         convs = read_claude_export(filepath)
         self._cached_convs = {c.conv_id: c for c in convs}
         self._cached_filepath = filepath

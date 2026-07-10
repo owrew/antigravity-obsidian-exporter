@@ -11,6 +11,7 @@ from ...models import Conversation, ConversationMeta
 from ...config.exporter import ExporterConfig
 from .ollama import read_lm_studio_export
 
+
 class OllamaProvider(BaseProvider):
     _cached_folder: Optional[str] = None
     _cached_convs: Dict[str, Conversation] = {}
@@ -25,7 +26,7 @@ class OllamaProvider(BaseProvider):
             return
         if self._cached_folder == folder and self._cached_convs:
             return
-        
+
         convs = read_lm_studio_export(folder)
         self._cached_convs = {c.conv_id: c for c in convs}
         self._cached_folder = folder

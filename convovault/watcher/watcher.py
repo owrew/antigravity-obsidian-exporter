@@ -11,6 +11,7 @@ from typing import Callable
 
 log = logging.getLogger(__name__)
 
+
 class PollingWatcher:
     def __init__(
         self,
@@ -61,7 +62,7 @@ class PollingWatcher:
         try:
             while self._running:
                 time.sleep(self.interval)
-                
+
                 # Check summaries pb
                 if os.path.isfile(self.pb_path):
                     current_pb = os.path.getmtime(self.pb_path)
@@ -86,11 +87,12 @@ class PollingWatcher:
     def stop(self):
         self._running = False
 
+
 def start_watch(source_dir: str, vault_dir: str, on_change: Callable[[str], None], on_pb_change: Callable[[], None], interval: float = 5.0):
     brain_dir = os.path.join(source_dir, "brain")
     annot_dir = os.path.join(source_dir, "annotations")
     pb_path = os.path.join(source_dir, "agyhub_summaries_proto.pb")
-    
+
     # Try using watchdog if installed
     try:
         from watchdog.observers import Observer
@@ -101,13 +103,13 @@ def start_watch(source_dir: str, vault_dir: str, on_change: Callable[[str], None
                 if event.is_directory:
                     return
                 path = os.path.abspath(event.src_path)
-                
+
                 # Check summaries pb
                 if path == os.path.abspath(pb_path):
                     log.info("Watchdog: summaries index modified")
                     on_pb_change()
                     return
-                
+
                 # Check transcript
                 if path.endswith(('transcript_full.jsonl', 'transcript.jsonl')):
                     parts = os.path.normpath(path).split(os.sep)
@@ -119,7 +121,7 @@ def start_watch(source_dir: str, vault_dir: str, on_change: Callable[[str], None
                     except (ValueError, IndexError):
                         pass
                     return
-                
+
                 # Check annotations
                 if path.endswith('.pbtxt') and os.sep + 'annotations' + os.sep in path:
                     fname = os.path.basename(path)

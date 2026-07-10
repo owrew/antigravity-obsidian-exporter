@@ -32,6 +32,7 @@ _WRAPPER_ONLY_TAGS = re.compile(
     re.IGNORECASE,
 )
 
+
 def clean_user_content(raw: str) -> str:
     """
     Clean a USER_INPUT step's content for display in the exported note.
@@ -46,9 +47,9 @@ def clean_user_content(raw: str) -> str:
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
+
 def get_date_range(conversation):
     dates = [s.created_at for s in conversation.steps if s.created_at]
     if not dates:
         return None, None
     return dates[0], dates[-1]
-

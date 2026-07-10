@@ -31,13 +31,14 @@ _PROVIDERS: Dict[str, Type[BaseProvider]] = {
     "librechat": LibreChatProvider,
 }
 
+
 def get_provider(name: str) -> Optional[BaseProvider]:
     """
     Resolve and instantiate a provider by name.
     First checks built-ins, then scans python entry_points.
     """
     name_lower = name.lower()
-    
+
     # 1. Built-in check
     if name_lower in _PROVIDERS:
         return _PROVIDERS[name_lower]()
@@ -54,7 +55,7 @@ def get_provider(name: str) -> Optional[BaseProvider]:
                 group_eps = eps.select(group='convovault.providers')
             else:
                 group_eps = eps.get('convovault.providers', [])
-                
+
             for ep in group_eps:
                 if ep.name == name_lower:
                     provider_cls = ep.load()
@@ -64,9 +65,11 @@ def get_provider(name: str) -> Optional[BaseProvider]:
 
     return None
 
+
 def register_provider(name: str, provider_cls: Type[BaseProvider]):
     """Allow programmatically registering custom providers."""
     _PROVIDERS[name.lower()] = provider_cls
+
 
 def list_providers() -> List[str]:
     """List all registered provider names."""

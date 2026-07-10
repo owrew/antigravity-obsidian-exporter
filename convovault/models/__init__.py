@@ -1,4 +1,4 @@
-from .conversation import (
+from .conversation import (  # noqa: F401
     ToolCall,
     Step,
     ConversationMeta,
@@ -17,4 +17,3 @@ __all__ = [
     "Conversation",
     "ConversationTranscript"
 ]
-

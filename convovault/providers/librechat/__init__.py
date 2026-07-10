@@ -3,4 +3,4 @@ librechat
 =========
 LibreChat conversation provider for ConvoVault.
 """
-from .provider import LibreChatProvider
+from .provider import LibreChatProvider  # noqa: F401

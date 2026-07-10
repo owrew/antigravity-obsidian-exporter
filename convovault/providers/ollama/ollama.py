@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import List
 from ...models import Step, ConversationTranscript
 
 log = logging.getLogger(__name__)
@@ -119,7 +119,7 @@ def read_lm_studio_export(folder: str) -> List[ConversationTranscript]:
     Read LM Studio conversation JSON files from a directory.
     LM Studio saves each conversation as a .json file in:
       ~/Library/Application Support/LM Studio/conversations/  (macOS)
-      %APPDATA%\LM Studio\conversations\                       (Windows)
+      %APPDATA%\\LM Studio\\conversations\\                       (Windows)
     """
     transcripts: List[ConversationTranscript] = []
     if not os.path.isdir(folder):

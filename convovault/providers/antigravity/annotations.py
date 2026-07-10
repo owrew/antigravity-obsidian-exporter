@@ -11,6 +11,7 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
+
 def parse_annotation(pbtxt_path: str) -> Optional[int]:
     """
     Parse last_user_view_time from annotations/{conv_id}.pbtxt.

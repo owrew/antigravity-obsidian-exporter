@@ -11,17 +11,18 @@ from __future__ import annotations
 import os
 import logging
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict
 from ..models import ConversationTranscript
 
 log = logging.getLogger(__name__)
+
 
 def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscript]):
     """
     Creates/updates Timeline.md, Conversations.md, Tags.md, and Topics.md in vault_dir root.
     """
     os.makedirs(vault_dir, exist_ok=True)
-    
+
     # Sort transcripts by creation date (descending)
     def get_sort_key(t: ConversationTranscript):
         # Fallback to current year if unknown
@@ -32,9 +33,9 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
             from datetime import datetime, timezone
             date_str = datetime.fromtimestamp(t.meta.created_at, tz=timezone.utc).isoformat()
         return date_str or "1970-01-01T00:00:00Z"
-        
+
     sorted_convs = sorted(transcripts.values(), key=get_sort_key, reverse=True)
-    
+
     # --- 1. Timeline.md ---
     timeline_path = os.path.join(vault_dir, "Timeline.md")
     timeline_lines = [
@@ -43,7 +44,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         "Chronological catalog of all Antigravity agent interactions.",
         ""
     ]
-    
+
     current_month = ""
     for c in sorted_convs:
         date_str = get_sort_key(c)[:10]
@@ -53,7 +54,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
             current_month = month
             timeline_lines.append(f"\n## 📆 {current_month}")
         timeline_lines.append(f"- **{date_str}**: [[{title}]] (steps: {len(c.steps)})")
-        
+
     try:
         with open(timeline_path, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write("\n".join(timeline_lines) + "\n")
@@ -77,7 +78,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         steps = len(c.steps)
         tech_list = ", ".join(c.intelligence.technologies[:4]) if c.intelligence.technologies else "*None*"
         convs_lines.append(f"| [[{title}]] | {date_str} | {steps} | {tech_list} |")
-        
+
     try:
         with open(convs_path, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write("\n".join(convs_lines) + "\n")
@@ -95,7 +96,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         tags = c.intelligence.technologies + ["antigravity", "ai-chat"]
         for tag in set(t.lower().replace(" ", "-") for t in tags):
             tag_map[tag].append((title, date_str))
-            
+
     tags_lines = [
         "# 🏷️ Conversations by Tag",
         "",
@@ -106,7 +107,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         tags_lines.append(f"\n## #{tag}")
         for title, date in tag_map[tag]:
             tags_lines.append(f"- **{date}** — [[{title}]]")
-            
+
     try:
         with open(tags_path, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write("\n".join(tags_lines) + "\n")
@@ -122,7 +123,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         date_str = get_sort_key(c)[:10]
         for topic in c.intelligence.topics:
             topic_map[topic].append((title, date_str))
-            
+
     topics_lines = [
         "# 🧠 Conversations by Topic",
         "",
@@ -133,7 +134,7 @@ def generate_indexes(vault_dir: str, transcripts: Dict[str, ConversationTranscri
         topics_lines.append(f"\n## 📌 {topic}")
         for title, date in topic_map[topic]:
             topics_lines.append(f"- **{date}** — [[{title}]]")
-            
+
     try:
         with open(topics_path, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write("\n".join(topics_lines) + "\n")

@@ -3,4 +3,4 @@ claude
 ======
 Claude.ai conversation provider for ConvoVault.
 """
-from .provider import ClaudeProvider
+from .provider import ClaudeProvider  # noqa: F401

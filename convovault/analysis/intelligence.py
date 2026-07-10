@@ -7,10 +7,8 @@ technologies, files mentioned, commands executed, and code languages used.
 from __future__ import annotations
 import os
 import re
-from typing import List, Set, Tuple, Any
+from typing import List, Set
 from ..models import Step, ConversationTranscript, ConversationIntelligence
-from ..utils.content import TOOL_RESULT_TYPES
-
 # Pattern dictionaries for tech & topics detection
 _TECH_STACK = {
     "React": r"\bReact\b",
@@ -88,6 +86,7 @@ _FILE_PATH_RE = re.compile(
     r'[a-zA-Z0-9_\-\.]+\.[a-zA-Z0-9]{2,4}\b'
 )
 
+
 def _extract_files(text: str) -> Set[str]:
     files = set()
     for match in _FILE_PATH_RE.finditer(text):
@@ -103,6 +102,7 @@ def _extract_files(text: str) -> Set[str]:
         files.add(os.path.basename(path))
     return files
 
+
 def _extract_commands(steps: List[Step]) -> List[str]:
     commands = []
     for step in steps:
@@ -117,6 +117,7 @@ def _extract_commands(steps: List[Step]) -> List[str]:
             pass # tool result
     return commands
 
+
 def _extract_languages(steps: List[Step]) -> Set[str]:
     langs = set()
     lang_map = {
@@ -130,7 +131,7 @@ def _extract_languages(steps: List[Step]) -> Set[str]:
         "sh": "Shell", "bat": "Batch",
         "pbtxt": "Protobuf", "pb": "Protobuf"
     }
-    
+
     # 1. Check codeblocks in markdown
     for step in steps:
         if step.content:
@@ -160,6 +161,7 @@ def _extract_languages(steps: List[Step]) -> Set[str]:
                 if ext in lang_map:
                     langs.add(lang_map[ext])
     return langs
+
 
 def _generate_summary(conv_id: str, steps: List[Step]) -> str:
     """
@@ -255,31 +257,31 @@ def _generate_summary(conv_id: str, steps: List[Step]) -> str:
 def generate_intelligence(transcript: ConversationTranscript) -> ConversationIntelligence:
     steps = transcript.steps
     all_text = " ".join([s.content for s in steps if s.content])
-    
+
     # 1. Tech stack
     tech = []
     for name, pat in _TECH_STACK.items():
         if re.search(pat, all_text, re.IGNORECASE):
             tech.append(name)
-            
+
     # 2. Topics
     topics = []
     for name, pat in _TOPIC_PATTERNS.items():
         if re.search(pat, all_text, re.IGNORECASE):
             topics.append(name)
-            
+
     # 3. Files Mentioned
     files = _extract_files(all_text)
-    
+
     # 4. Commands
     commands = _extract_commands(steps)
-    
+
     # 5. Languages
     languages = sorted(list(_extract_languages(steps)))
-    
+
     # 6. Summary
     summary = _generate_summary(transcript.conv_id, steps)
-    
+
     return ConversationIntelligence(
         summary=summary,
         topics=topics,

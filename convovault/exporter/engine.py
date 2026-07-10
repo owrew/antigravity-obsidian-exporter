@@ -7,7 +7,7 @@ renderer, and indexers.
 from __future__ import annotations
 import os
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from ..models import Conversation, ConversationMeta
 from ..config.exporter import ExporterConfig
@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 DEBUG_SUBDIR = ".convovault_debug"
 
+
 def export_one(
     conv_id: str,
     convo: Conversation,
@@ -32,7 +33,7 @@ def export_one(
     all_meta: Dict[str, ConversationMeta]
 ) -> Optional[bool]:  # True=written, False=skipped, None=error
     meta = meta_index.get(conv_id)
-    
+
     # Check source file modification time
     source_mtime = None
     if convo.source_file and os.path.isfile(convo.source_file):
@@ -64,7 +65,7 @@ def export_one(
     # Filename collision resolver
     title = meta.title if meta else conv_id[:8]
     filename = title_to_filename(title)
-    
+
     existing_path = state.get_note_path(conv_id)
     if existing_path:
         filename = os.path.basename(existing_path)
@@ -87,7 +88,7 @@ def export_one(
 
     os.makedirs(config.output_chats_dir, exist_ok=True)
     note_path = os.path.join(config.output_chats_dir, filename)
-    
+
     try:
         with open(note_path, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write(md_content)
@@ -98,6 +99,7 @@ def export_one(
 
     state.mark_exported(conv_id, chash, source_mtime, note_path)
     return True  # sentinel: written
+
 
 def _dump_debug(conv_id: str, convo: Conversation, vault_dir: str, err: str):
     debug_dir = os.path.join(vault_dir, DEBUG_SUBDIR)
@@ -115,9 +117,10 @@ def _dump_debug(conv_id: str, convo: Conversation, vault_dir: str, err: str):
     except Exception:
         pass
 
+
 def run_export(config: ExporterConfig) -> dict:
     log.info("Starting ConvoVault -> Obsidian sync engine (provider: %s)", config.provider)
-    
+
     provider = get_provider(config.provider)
     if not provider:
         log.error("Provider '%s' not registered or found.", config.provider)
@@ -125,7 +128,7 @@ def run_export(config: ExporterConfig) -> dict:
 
     # 1. Load metadata index from provider
     meta_index = provider.load_metadata_index(config)
-    
+
     # 2. Discover conversation IDs
     conv_ids = provider.discover_conversations(config)
     if config.conv_filter:
@@ -139,7 +142,7 @@ def run_export(config: ExporterConfig) -> dict:
     # 3. Load conversations and run intelligence/relations in memory
     conversations: Dict[str, Conversation] = {}
     stats = {'written': 0, 'skipped': 0, 'failed': 0, 'total': len(conv_ids)}
-    
+
     log.info("Loading and analyzing conversations...")
     for cid in conv_ids:
         try:
@@ -160,7 +163,7 @@ def run_export(config: ExporterConfig) -> dict:
 
     # 5. Export Markdown documents (Idempotent)
     state = ExportState(config.vault_dir)
-    
+
     for cid, convo in conversations.items():
         try:
             res = export_one(

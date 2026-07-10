@@ -11,6 +11,7 @@ from ...models import Conversation, ConversationMeta
 from ...config.exporter import ExporterConfig
 from .ollama import read_open_webui_db
 
+
 class OpenWebUIProvider(BaseProvider):
     _cached_dbpath: Optional[str] = None
     _cached_convs: Dict[str, Conversation] = {}
@@ -34,7 +35,7 @@ class OpenWebUIProvider(BaseProvider):
             return
         if self._cached_dbpath == dbpath and self._cached_convs:
             return
-        
+
         convs = read_open_webui_db(dbpath)
         self._cached_convs = {c.conv_id: c for c in convs}
         self._cached_dbpath = dbpath
