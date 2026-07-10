@@ -8,10 +8,11 @@ import logging
 import os
 import sqlite3
 import struct
-from typing import Iterator, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from ...models import Step, ConversationTranscript
 
 log = logging.getLogger(__name__)
+
 
 def _read_varint(buf: bytes, pos: int) -> Tuple[int, int]:
     result, shift = 0, 0
@@ -22,6 +23,7 @@ def _read_varint(buf: bytes, pos: int) -> Tuple[int, int]:
         if not (b & 0x80):
             break
     return result, pos
+
 
 def _decode_fields(data: bytes):
     buf = bytes(data)
@@ -64,6 +66,7 @@ def _decode_fields(data: bytes):
             errors += 1
     return out
 
+
 def _try_str(v: bytes) -> Optional[str]:
     if isinstance(v, bytes):
         try:
@@ -74,11 +77,13 @@ def _try_str(v: bytes) -> Optional[str]:
             pass
     return None
 
+
 def _decode_timestamp_pb(raw: bytes) -> int:
     for fn, wt, v in _decode_fields(raw):
         if fn == 1 and wt == 0:
             return v
     return 0
+
 
 def _seconds_to_iso(sec: int) -> str:
     from datetime import datetime, timezone
@@ -97,6 +102,7 @@ _STEP_TYPE_MAP = {
     132: "SEND_MESSAGE",
 }
 
+
 def _extract_text_from_payload(payload: bytes) -> str:
     fields = _decode_fields(payload)
     texts = []
@@ -114,6 +120,7 @@ def _extract_text_from_payload(payload: bytes) -> str:
                         break
             texts.append(inner_text or s)
     return '\n\n'.join(t for t in texts if t)
+
 
 def read_from_sqlite(db_path: str, conv_id: str) -> Optional[ConversationTranscript]:
     if not os.path.isfile(db_path):
@@ -170,7 +177,7 @@ def read_from_sqlite(db_path: str, conv_id: str) -> Optional[ConversationTranscr
                 content = _extract_text_from_payload(bytes(payload_raw))
             except Exception as e:
                 log.debug("Payload decode error step idx %d: %s", idx, e)
-                content = f"[raw protobuf payload: decode failed]"
+                content = "[raw protobuf payload: decode failed]"
 
         steps.append(Step(
             index=idx,
@@ -187,6 +194,7 @@ def read_from_sqlite(db_path: str, conv_id: str) -> Optional[ConversationTranscr
     log.info("Recovered %d steps from SQLite db: %s", len(steps), conv_id)
     return ConversationTranscript(
         conv_id=conv_id,
+        provider="antigravity",
         steps=steps,
         source_file=db_path,
     )

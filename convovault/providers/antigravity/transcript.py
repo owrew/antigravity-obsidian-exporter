@@ -26,6 +26,7 @@ TOOL_RESULT_TYPES = {
     "READ_URL_CONTENT", "DEFINE_SUBAGENT",
 }
 
+
 def _jsonl_path(brain_dir: str, conv_id: str) -> Optional[str]:
     base = os.path.join(brain_dir, conv_id, ".system_generated", "logs")
     full = os.path.join(base, "transcript_full.jsonl")
@@ -35,6 +36,7 @@ def _jsonl_path(brain_dir: str, conv_id: str) -> Optional[str]:
     if os.path.isfile(compact):
         return compact
     return None
+
 
 def _parse_tool_calls(raw: Any) -> List[ToolCall]:
     if not raw or not isinstance(raw, list):
@@ -47,6 +49,7 @@ def _parse_tool_calls(raw: Any) -> List[ToolCall]:
             except Exception as e:
                 log.warning("Malformed tool call object: %s, error: %s", item, e)
     return result
+
 
 def _iter_steps(jsonl_path: str) -> Iterator[Step]:
     with open(jsonl_path, 'r', encoding='utf-8', errors='replace') as fh:
@@ -76,6 +79,7 @@ def _iter_steps(jsonl_path: str) -> Iterator[Step]:
                 truncated=obj.get("is_truncated", False),
             )
 
+
 def read_transcript(brain_dir: str, conv_id: str) -> Optional[ConversationTranscript]:
     path = _jsonl_path(brain_dir, conv_id)
     if path is None:
@@ -87,12 +91,14 @@ def read_transcript(brain_dir: str, conv_id: str) -> Optional[ConversationTransc
         log.debug("Read %d steps from %s", len(steps), path)
         return ConversationTranscript(
             conv_id=conv_id,
+            provider="antigravity",
             steps=steps,
             source_file=path,
         )
     except Exception as e:
         log.error("Failed to read transcript for %s at %s: %s", conv_id, path, e)
         return None
+
 
 def get_transcript_mtime(brain_dir: str, conv_id: str) -> Optional[float]:
     path = _jsonl_path(brain_dir, conv_id)
@@ -118,6 +124,7 @@ _WRAPPER_ONLY_TAGS = re.compile(
     re.IGNORECASE,
 )
 
+
 def clean_user_content(raw: str) -> str:
     """
     Clean a USER_INPUT step's content for display in the exported note.
@@ -137,11 +144,13 @@ def clean_user_content(raw: str) -> str:
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
+
 def extract_first_user_message(transcript: ConversationTranscript) -> str:
     for step in transcript.steps:
         if step.step_type == TYPE_USER_INPUT:
             return clean_user_content(step.content)
     return ""
+
 
 def get_date_range(transcript: ConversationTranscript):
     dates = [s.created_at for s in transcript.steps if s.created_at]
