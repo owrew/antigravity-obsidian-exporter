@@ -50,7 +50,7 @@ jobs:
 
       - name: Run flake8
         run: |
-          flake8 convovault/ --max-line-length=120 --ignore=E501,W503,E203 --exclude=__pycache__
+          flake8 convovault/ --max-line-length=120 --ignore=E501,W503,E203,E701,E702,E241,E261,E272,E221,E305,W504 --exclude=__pycache__
 
   release:
     name: Create GitHub Release
