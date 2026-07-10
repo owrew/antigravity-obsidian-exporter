@@ -75,6 +75,8 @@ exports/
 
 # Exporter state / cache
 .agy_export_state.json
+.convovault_state.json
+.convovault_debug/
 
 # Antigravity-generated workspace files
 installation_id
