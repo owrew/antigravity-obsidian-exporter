@@ -4,13 +4,14 @@ test_markdown.py
 Tests formatting steps, YAML frontmatter tags, turns output format.
 """
 from __future__ import annotations
-from agy_exporter.models import Step, ConversationTranscript, ConversationMeta
-from agy_exporter.render.conversation import format_conversation
-from agy_exporter.analysis.intelligence import generate_intelligence
+from convovault.models.conversation import Step, ConversationTranscript, ConversationMeta
+from convovault.rendering.conversation import format_conversation
+from convovault.analysis.intelligence import generate_intelligence
 
 def _make_transcript(steps=None, conv_id="convo_123"):
     ts = ConversationTranscript(
         conv_id=conv_id,
+        provider="antigravity",
         steps=steps or [],
         source_file="mock.jsonl"
     )
