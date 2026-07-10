@@ -6,7 +6,7 @@ Tests raw protobuf parsing and decoding components.
 from __future__ import annotations
 import tempfile
 import os
-from agy_exporter.sources.pb_summaries import parse_summaries, _decode_fields
+from convovault.providers.antigravity.pb_summaries import parse_summaries, _decode_fields
 
 def test_decode_fields():
     # Simple length-delimited string protobuf data: tag (1<<3)|2 = 10, length 5, value "hello"

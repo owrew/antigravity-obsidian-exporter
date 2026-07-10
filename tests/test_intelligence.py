@@ -4,8 +4,8 @@ test_intelligence.py
 Tests heuristics for summaries, tech stack mapping, and commands extraction.
 """
 from __future__ import annotations
-from agy_exporter.models import Step, ConversationTranscript
-from agy_exporter.analysis.intelligence import generate_intelligence
+from convovault.models.conversation import Step, ConversationTranscript
+from convovault.analysis.intelligence import generate_intelligence
 
 def test_generate_intelligence():
     steps = [
@@ -20,6 +20,7 @@ def test_generate_intelligence():
     ]
     ts = ConversationTranscript(
         conv_id="test_id",
+        provider="antigravity",
         steps=steps,
         source_file="mock.jsonl"
     )

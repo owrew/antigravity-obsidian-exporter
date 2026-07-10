@@ -6,7 +6,7 @@ Tests transcript JSONL reader and user content cleaning logic.
 from __future__ import annotations
 import tempfile
 import os
-from agy_exporter.sources.transcript import clean_user_content, _iter_steps
+from convovault.utils.content import clean_user_content
 
 def test_clean_user_content():
     """USER_REQUEST content is kept; ADDITIONAL_METADATA block is stripped entirely."""
@@ -19,9 +19,7 @@ def test_clean_user_content():
         "</ADDITIONAL_METADATA>"
     )
     cleaned = clean_user_content(raw_user)
-    # The user's request text must survive
     assert "Please fix this styling issue." in cleaned
-    # System metadata must be removed completely
     assert "OS: windows" not in cleaned
     assert "<ADDITIONAL_METADATA>" not in cleaned
 

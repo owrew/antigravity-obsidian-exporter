@@ -4,12 +4,13 @@ test_relations.py
 Tests relational matches between conversations.
 """
 from __future__ import annotations
-from agy_exporter.models import ConversationTranscript, ConversationIntelligence, ConversationMeta
-from agy_exporter.analysis.relations import find_relations
+from convovault.models.conversation import Conversation, ConversationIntelligence, ConversationMeta
+from convovault.analysis.relations import find_relations
 
 def test_find_relations():
-    c1 = ConversationTranscript(
+    c1 = Conversation(
         conv_id="c1",
+        provider="antigravity",
         steps=[],
         source_file="mock.jsonl",
         meta=ConversationMeta(conversation_id="c1", title="Docker Setup"),
@@ -19,8 +20,9 @@ def test_find_relations():
             topics=["Deployment"]
         )
     )
-    c2 = ConversationTranscript(
+    c2 = Conversation(
         conv_id="c2",
+        provider="antigravity",
         steps=[],
         source_file="mock.jsonl",
         meta=ConversationMeta(conversation_id="c2", title="Drizzle Migration"),
