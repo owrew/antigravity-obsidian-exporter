@@ -9,9 +9,6 @@ import json
 import logging
 import os
 import sys
-from pathlib import Path
-
-from typing import Dict, List, Optional
 from ..config.exporter import ExporterConfig
 from ..exporter.engine import run_export, export_one
 from ..providers.plugin_loader import get_provider, list_providers
@@ -20,11 +17,13 @@ from ..watcher.watcher import start_watch
 
 # ── Config file path ─────────────────────────────────────────────────────────
 
+
 def _config_file_path() -> str:
     if os.name == 'nt':
         base = os.environ.get('APPDATA', os.path.expanduser('~'))
         return os.path.join(base, 'convovault', 'config.json')
     return os.path.expanduser('~/.config/convovault/config.json')
+
 
 def _load_saved_config() -> dict:
     path = _config_file_path()
@@ -35,6 +34,7 @@ def _load_saved_config() -> dict:
         except Exception:
             pass
     return {}
+
 
 def _save_config(data: dict):
     path = _config_file_path()
@@ -50,15 +50,18 @@ def _save_config(data: dict):
 
 # ── Source auto-detection ─────────────────────────────────────────────────────
 
+
 def _is_valid_source(path: str) -> bool:
     return os.path.isdir(os.path.join(path, "brain")) and (
         os.path.isdir(os.path.join(path, "conversations")) or
         os.path.isfile(os.path.join(path, "agyhub_summaries_proto.pb"))
     )
 
+
 def _detect_source() -> str:
     candidates = [
         os.getcwd(),
+        os.path.join(os.path.expanduser("~"), ".gemini", "antigravity"),  # Default install path
         os.path.join(os.path.expanduser("~"), "OneDrive", "Downloads", "OBS"),
         os.path.join(os.path.expanduser("~"), "OneDrive", "Documents", "OBS"),
         os.path.join(os.path.expanduser("~"), "Downloads", "OBS"),
@@ -78,17 +81,18 @@ def _detect_source() -> str:
             return c
     return os.getcwd()
 
+
 def _resolve_paths(args) -> tuple[str, str, str]:
     saved = _load_saved_config()
     provider = args.provider or os.environ.get("AGY_PROVIDER") or saved.get("provider") or "antigravity"
-    
+
     source_dir = (
         args.source
         or os.environ.get("AGY_SOURCE")
         or saved.get("source")
         or _detect_source()
     )
-    
+
     vault_dir = (
         args.vault
         or os.environ.get("AGY_VAULT")
@@ -96,6 +100,7 @@ def _resolve_paths(args) -> tuple[str, str, str]:
         or source_dir
     )
     return provider, source_dir, vault_dir
+
 
 def _setup_logging(verbose: bool):
     level = logging.DEBUG if verbose else logging.INFO
@@ -111,11 +116,12 @@ def _setup_logging(verbose: bool):
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
+
 def handle_export(args):
     provider, source, vault = _resolve_paths(args)
     if args.save:
         _save_config({"provider": provider, "source": source, "vault": vault})
-        
+
     config = ExporterConfig(
         source_dir=source,
         vault_dir=vault,
@@ -128,16 +134,17 @@ def handle_export(args):
         max_tool_output_length=args.max_tool_output_length,
         verbose=args.verbose,
     )
-    
+
     if not os.path.isdir(config.source_dir) and not os.path.isfile(config.source_dir):
         print(f"[error] Source path not found: {config.source_dir}")
         sys.exit(1)
-        
+
     print(f"Source   : {config.source_dir}")
     print(f"Vault    : {config.vault_dir}")
     print(f"Provider : {config.provider}")
-    
+
     run_export(config)
+
 
 def handle_watch(args):
     provider, source, vault = _resolve_paths(args)
@@ -154,13 +161,13 @@ def handle_watch(args):
         max_tool_output_length=args.max_tool_output_length,
         verbose=args.verbose,
     )
-    
+
     print(f"Watching source: {config.source_dir} (interval: {config.watch_interval}s)")
     print(f"Syncing to vault: {config.vault_dir}")
-    
+
     # Do initial run
     run_export(config)
-    
+
     # Load state and provider summaries
     state = ExportState(config.vault_dir)
     prov = get_provider(config.provider)
@@ -193,11 +200,13 @@ def handle_watch(args):
         interval=config.watch_interval,
     )
 
+
 def handle_providers(args):
     print("\n--- ConvoVault Registered Providers ---")
     for name in list_providers():
         print(f"  - {name}")
     print()
+
 
 def handle_search(args):
     provider, source, vault = _resolve_paths(args)
@@ -207,7 +216,7 @@ def handle_search(args):
     if not os.path.isdir(chats_dir):
         print("No exported notes directory found.")
         return
-        
+
     matches = 0
     for fname in os.listdir(chats_dir):
         if not fname.endswith(".md"):
@@ -223,6 +232,7 @@ def handle_search(args):
             pass
     print(f"\nFound {matches} matches total.")
 
+
 def handle_stats(args):
     provider, source, vault = _resolve_paths(args)
     state = ExportState(vault)
@@ -231,6 +241,7 @@ def handle_stats(args):
     print(f"  Total Exported  : {len(state.state)} notes")
     print()
 
+
 def handle_doctor(args):
     provider, source, vault = _resolve_paths(args)
     ok, bad = "[OK]", "[!!]"
@@ -238,25 +249,26 @@ def handle_doctor(args):
     print(f"  Active Provider: {provider}")
     print(f"  Source Path: {source} — {'Exists' if os.path.exists(source) else 'MISSING'}")
     print(f"  Vault Path:  {vault} — {'Exists' if os.path.exists(vault) else 'MISSING'}")
-    
+
     prov_obj = get_provider(provider)
     if prov_obj:
         print(f"  Provider Resolve: {ok} resolved successfully")
     else:
         print(f"  Provider Resolve: {bad} FAILED to resolve '{provider}'")
-        
+
     try:
         import sqlite3
         print(f"  sqlite3: {ok} module is available")
     except ImportError:
         print(f"  sqlite3: {bad} module missing")
-        
+
     try:
         import watchdog
         print(f"  watchdog: {ok} observer available for active watching")
     except ImportError:
-        print(f"  watchdog: [--] missing, using fallback polling watcher")
+        print("  watchdog: [--] missing, using fallback polling watcher")
     print()
+
 
 def handle_config(args):
     provider, source, vault = _resolve_paths(args)
@@ -272,6 +284,7 @@ def handle_config(args):
         print()
     elif args.action == "save":
         _save_config({"provider": provider, "source": source, "vault": vault})
+
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="convovault", description="Universal AI Conversation Knowledge Vault.")
